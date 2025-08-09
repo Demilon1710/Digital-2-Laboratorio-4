@@ -1,0 +1,206 @@
+//******************************************/
+// Universidad del Valle de Guatemala
+// BE3029 - Electronica Digital 2
+// Javier Emilio de León
+// 8/08/2025
+// Laboratorio 4 - Electrónica Digital 2
+// MCU: ESP32 dev kit 1.0
+//******************************************/
+
+//******************************************/
+// Librerias
+//******************************************/
+#include <Arduino.h>
+#include <stdint.h>
+//Paso 1 Incluir librería
+#include<driver/ledc.h>
+//******************************************/
+// Definiciones
+//******************************************/
+#define LEDB 15 //Led azul 
+#define LEDY 2 //Led amarillo 
+#define LEDR 18 //Led rojo 
+#define BTN1 13 //Boton 1
+#define BTN2 12 //Boton 2
+#define BTN3 27
+#define BTN4 32
+#define antiBounce 300 //Milisegundos para antirrebote
+//Paso 2 Escoger el canal
+#define pwmB 0
+#define pwmY 1
+#define pwmR 2
+
+//Paso 3 Escoger la frecuencia del PWM
+#define freqPWM 1000
+
+//Paso 4 Escoger resolución de PWM
+#define resPWM 12
+
+
+
+//******************************************/
+// Prototipos de funciones
+//******************************************/
+void initPWMB(void);
+void initPWMY(void);
+void initPWMR(void);
+void initBTN1(void);
+void IRAM_ATTR BTN1_ISR(void); //Funciones para interrupciones de los botones
+void initBTN2(void);
+void IRAM_ATTR BTN2_ISR(void);
+//******************************************/
+// Variables globales
+//******************************************/
+uint32_t dutyCycle = 0;
+volatile int32_t contadorLED; //Se tomarán en cuenta valores negativos, por lo que son enteros de ambos signos.
+volatile int32_t contadorBRILLOB;
+volatile int32_t contadorBRILLOY;
+volatile int32_t contadorBRILLOR;
+volatile bool btn1ON; //Variable booleana para marcar que se presionó el botón.
+volatile uint32_t lastISRbtn1 = 0; //Última presionada del botón.
+volatile bool btn2ON;
+volatile uint32_t lastISRbtn2 = 0;
+//******************************************/
+// ISRs Rutinas de Interrupcion
+//******************************************/
+void IRAM_ATTR BTN1_ISR(void){ //Función que permite el antirrebote.
+  uint32_t tiempoActual = millis(); //Millis permite contar el tiempo desde el inicio del programa.
+  if(tiempoActual - lastISRbtn1 > antiBounce){ //Ciclo if para sumar al contador si se cumplen las condiciones del interruptor 1
+  btn1ON = true;
+  contadorLED++;
+  lastISRbtn1 = tiempoActual;
+  }
+}
+void IRAM_ATTR BTN2_ISR(void){ //Ciclo if para restar al contador si se cumplen las condiciones del interruptor 2
+  uint32_t tiempoActual = millis();
+  if(tiempoActual - lastISRbtn2 > antiBounce){
+  btn2ON = true;
+  
+  lastISRbtn2 = tiempoActual;
+  if(contadorLED == 0){
+    contadorBRILLOB++;
+  }
+  if(contadorLED == 1){
+    contadorBRILLOY++;
+  }
+  if(contadorLED == 2){
+    contadorBRILLOR++;
+  }
+  }
+  }
+//******************************************/
+// Configuracion
+//******************************************/
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(115200); //Iniciar la serialización para los comandos de texto.
+  contadorLED = 0; //Darle un valor inicial a los contadores.
+  contadorBRILLOB = 0;
+  contadorBRILLOY = 0;
+  contadorBRILLOR = 0;
+  initPWMB();
+  initPWMY();
+  initPWMR();
+  
+  initBTN1();  //Llamar a la función para inicializar los botones.
+  initBTN2();
+
+}
+//******************************************/
+// Loop Principal
+//******************************************/
+void loop() {
+  // put your main code here, to run repeatedly:
+  if(contadorLED == 0){
+    if(contadorBRILLOB == 0){
+      ledcWrite(pwmB, 0);
+    }
+    if(contadorBRILLOB == 1){
+      ledcWrite(pwmB, 500);
+    }
+    if(contadorBRILLOB == 2){
+      ledcWrite(pwmB, 2000);
+    }
+    if(contadorBRILLOB == 3){
+      ledcWrite(pwmB, 4000);
+    }
+  }
+  if(contadorLED == 1){
+    if(contadorBRILLOY == 0){
+      ledcWrite(pwmY, 0);
+    }
+    if(contadorBRILLOY == 1){
+      ledcWrite(pwmY, 500);
+    }
+    if(contadorBRILLOY == 2){
+      ledcWrite(pwmY, 2000);
+    }
+    if(contadorBRILLOY == 3){
+      ledcWrite(pwmY, 4000);
+    }
+  }
+  if(contadorLED == 2){
+    if(contadorBRILLOR == 0){
+      ledcWrite(pwmR, 0);
+    }
+    if(contadorBRILLOR == 1){
+      ledcWrite(pwmR, 500);
+    }
+    if(contadorBRILLOR == 2){
+      ledcWrite(pwmR, 2000);
+    }
+    if(contadorBRILLOR == 3){
+      ledcWrite(pwmR, 4000);
+    }
+  }
+  if(contadorLED > 2){ //Crear un ciclo entre los valores que puede alcanzar el contador.
+    contadorLED = 0;
+  }
+  if(contadorBRILLOB > 3){ //Crear un ciclo entre los valores que puede alcanzar el contador.
+    contadorBRILLOB = 0;
+  }
+  if(contadorBRILLOY > 3){ //Crear un ciclo entre los valores que puede alcanzar el contador.
+    contadorBRILLOY = 0;
+  }
+  if(contadorBRILLOR > 3){ //Crear un ciclo entre los valores que puede alcanzar el contador.
+    contadorBRILLOR = 0;
+  }
+}
+//******************************************/
+// Otras funciones
+//******************************************/
+
+void initPWMB(void){
+  //Paso 4 configuro el PWM
+  ledcSetup(pwmB, freqPWM, resPWM);
+
+  //Resolucion
+  // 16 bits -> 2^16 -> 0. -    65535
+  //.                   0%       100%
+  //O ledcSetup(0, 100, 16);
+  //Paso 5 configurar que GPIO va a salir el PWM
+  ledcAttachPin(LEDB, pwmB);
+
+  //Paso 6 configurar ciclo de trabajo
+  ledcWrite(pwmB, 0);
+}
+void initPWMY(void){
+  //Paso 4 configuro el PWM
+  ledcSetup(pwmY, freqPWM, resPWM);
+  ledcAttachPin(LEDY, pwmY);
+  ledcWrite(pwmY, 0);
+}
+void initPWMR(void){
+  ledcSetup(pwmR, freqPWM, resPWM);
+  ledcAttachPin(LEDR, pwmR);
+  ledcWrite(pwmR, 0);
+}
+void initBTN1(void){
+  //Funciones para denominar a los botones con su tipo de entrada y su interruptor.
+  pinMode(BTN1, INPUT_PULLUP);
+  attachInterrupt(BTN1, &BTN1_ISR, FALLING); //Se indica el pin del botón, su función de interrupción y el tipo de señal donde se interrumpe.
+}
+void initBTN2(void){
+  pinMode(BTN2, INPUT_PULLDOWN);
+  attachInterrupt(BTN2, &BTN2_ISR, RISING);
+}
