@@ -193,6 +193,33 @@ void loop() {
       ledcWrite(pwmR, 4000);
     }
   }
+  if(contadorLED == 3){ //Modo en el que se cambia de color de acuerdo a la posición del servo.
+    if(contadorSERVO == 0){
+      ledcWrite(pwmB, 0);
+      ledcWrite(pwmY, 0);
+      ledcWrite(pwmR, 0);
+    }
+    if(contadorSERVO == 1){
+      ledcWrite(pwmB, 4000);
+      ledcWrite(pwmY, 0);
+      ledcWrite(pwmR, 0);
+    }
+    if(contadorSERVO == 2){
+      ledcWrite(pwmB, 0);
+      ledcWrite(pwmY, 4000);
+      ledcWrite(pwmR, 0);
+    }
+    if(contadorSERVO == 3){
+      ledcWrite(pwmB, 0);
+      ledcWrite(pwmY, 0);
+      ledcWrite(pwmR, 4000);
+    }
+    if(contadorSERVO == 4){
+      ledcWrite(pwmB, 0);
+      ledcWrite(pwmY, 0);
+      ledcWrite(pwmR, 0);
+    }
+  }
   if(contadorSERVO == 0){
     ledcWrite(pwmS, 103); //Utilizando la frecuencia seleccionada (50), se obtiene el tiempo en ms dividiendo 1/50.
     //Sabiendo que el tiempo es 20 ms, y usando una resolución de 12 bits, se obtiene el ciclo de trabajo para 5 tiempos diferentes.
@@ -215,7 +242,7 @@ void loop() {
     ledcWrite(pwmS, 512);
     //Para la primera posición se busca la posición a 2.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
   }
-  if(contadorLED > 2){ //Crear un ciclo entre los valores que puede alcanzar el contador.
+  if(contadorLED > 3){ //Crear un ciclo entre los valores que puede alcanzar el contador.
     contadorLED = 0;
   }
   if(contadorBRILLOB > 3){ //Crear un ciclo entre los valores que puede alcanzar el contador.
@@ -227,10 +254,10 @@ void loop() {
   if(contadorBRILLOR > 3){ //Crear un ciclo entre los valores que puede alcanzar el contador.
     contadorBRILLOR = 0;
   }
-  if(contadorSERVO > 4){
+  if(contadorSERVO > 4){ //Permanecer en el último mayor valor.
     contadorSERVO = 4;
   }
-  if(contadorSERVO < 0){
+  if(contadorSERVO < 0){ //Permanecer en el último menor valor.
     contadorSERVO = 0;
   }
 }
@@ -242,10 +269,6 @@ void initPWMB(void){
   //Paso 4 configuro el PWM
   ledcSetup(pwmB, freqPWM, resPWM);
 
-  //Resolucion
-  // 16 bits -> 2^16 -> 0. -    65535
-  //.                   0%       100%
-  //O ledcSetup(0, 100, 16);
   //Paso 5 configurar que GPIO va a salir el PWM
   ledcAttachPin(LEDB, pwmB);
 
