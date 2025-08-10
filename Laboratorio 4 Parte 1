@@ -24,14 +24,16 @@
 #define BTN2 12 //Boton 2
 #define BTN3 27
 #define BTN4 32
+#define servo 21
 #define antiBounce 300 //Milisegundos para antirrebote
 //Paso 2 Escoger el canal
 #define pwmB 0
 #define pwmY 1
 #define pwmR 2
+#define pwmS 3
 
 //Paso 3 Escoger la frecuencia del PWM
-#define freqPWM 1000
+#define freqPWM 50
 
 //Paso 4 Escoger resolución de PWM
 #define resPWM 12
@@ -44,10 +46,15 @@
 void initPWMB(void);
 void initPWMY(void);
 void initPWMR(void);
+void initPWMS(void);
 void initBTN1(void);
 void IRAM_ATTR BTN1_ISR(void); //Funciones para interrupciones de los botones
 void initBTN2(void);
 void IRAM_ATTR BTN2_ISR(void);
+void initBTN3(void);
+void IRAM_ATTR BTN3_ISR(void); //Funciones para interrupciones de los botones
+void initBTN4(void);
+void IRAM_ATTR BTN4_ISR(void);
 //******************************************/
 // Variables globales
 //******************************************/
@@ -56,10 +63,15 @@ volatile int32_t contadorLED; //Se tomarán en cuenta valores negativos, por lo 
 volatile int32_t contadorBRILLOB;
 volatile int32_t contadorBRILLOY;
 volatile int32_t contadorBRILLOR;
+volatile int32_t contadorSERVO;
 volatile bool btn1ON; //Variable booleana para marcar que se presionó el botón.
 volatile uint32_t lastISRbtn1 = 0; //Última presionada del botón.
 volatile bool btn2ON;
 volatile uint32_t lastISRbtn2 = 0;
+volatile bool btn3ON;
+volatile uint32_t lastISRbtn3 = 0;
+volatile bool btn4ON;
+volatile uint32_t lastISRbtn4 = 0;
 //******************************************/
 // ISRs Rutinas de Interrupcion
 //******************************************/
@@ -73,7 +85,7 @@ void IRAM_ATTR BTN1_ISR(void){ //Función que permite el antirrebote.
 }
 void IRAM_ATTR BTN2_ISR(void){ //Ciclo if para restar al contador si se cumplen las condiciones del interruptor 2
   uint32_t tiempoActual = millis();
-  if(tiempoActual - lastISRbtn2 > antiBounce){
+  if(tiempoActual - lastISRbtn2 > antiBounce){ //Se creáron if para hacer funcionar nuevos contadores.
   btn2ON = true;
   
   lastISRbtn2 = tiempoActual;
@@ -88,6 +100,22 @@ void IRAM_ATTR BTN2_ISR(void){ //Ciclo if para restar al contador si se cumplen 
   }
   }
   }
+void IRAM_ATTR BTN3_ISR(void){ //Función que permite el antirrebote.
+  uint32_t tiempoActual = millis(); //Millis permite contar el tiempo desde el inicio del programa.
+  if(tiempoActual - lastISRbtn3 > antiBounce){ //Ciclo if para sumar al contador si se cumplen las condiciones del interruptor 3
+  btn3ON = true;
+  contadorSERVO++;
+  lastISRbtn3 = tiempoActual;
+  }
+}
+void IRAM_ATTR BTN4_ISR(void){ //Función que permite el antirrebote.
+  uint32_t tiempoActual = millis(); //Millis permite contar el tiempo desde el inicio del programa.
+  if(tiempoActual - lastISRbtn4 > antiBounce){ //Ciclo if para sumar al contador si se cumplen las condiciones del interruptor 4
+  btn4ON = true;
+  contadorSERVO--;
+  lastISRbtn4 = tiempoActual;
+  }
+}
 //******************************************/
 // Configuracion
 //******************************************/
@@ -98,12 +126,23 @@ void setup() {
   contadorBRILLOB = 0;
   contadorBRILLOY = 0;
   contadorBRILLOR = 0;
-  initPWMB();
+  contadorSERVO = 0;
+  initPWMB(); //Llamar funciones para inicializar los PWMs
   initPWMY();
   initPWMR();
+  initPWMS();
+
+  
+  //ledcWrite(pwmS, 103); Bloque usado para comprobar el funcionamiento del servo.
+  //ledcWrite(pwmS, 205);
+  //ledcWrite(pwmS, 307);
+  //ledcWrite(pwmS, 410);
+  //ledcWrite(pwmS, 512);
   
   initBTN1();  //Llamar a la función para inicializar los botones.
   initBTN2();
+  initBTN3();
+  initBTN4();
 
 }
 //******************************************/
@@ -113,7 +152,8 @@ void loop() {
   // put your main code here, to run repeatedly:
   if(contadorLED == 0){
     if(contadorBRILLOB == 0){
-      ledcWrite(pwmB, 0);
+      ledcWrite(pwmB, 0); //De acuerdo con el cálculo realizado para la resolución utilizada (12) se indica el valor de ciclo de trabajo
+                          //para cada canal de PWM.
     }
     if(contadorBRILLOB == 1){
       ledcWrite(pwmB, 500);
@@ -153,6 +193,28 @@ void loop() {
       ledcWrite(pwmR, 4000);
     }
   }
+  if(contadorSERVO == 0){
+    ledcWrite(pwmS, 103); //Utilizando la frecuencia seleccionada (50), se obtiene el tiempo en ms dividiendo 1/50.
+    //Sabiendo que el tiempo es 20 ms, y usando una resolución de 12 bits, se obtiene el ciclo de trabajo para 5 tiempos diferentes.
+    //Los 20 ms se dividen entre el valor de 2^12 = 4096, obteniendo 0.004882813 ms
+    //Para la primera posición se busca la posición a 0.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
+  }
+  if(contadorSERVO == 1){
+    ledcWrite(pwmS, 205);
+    //Para la primera posición se busca la posición a 1 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
+  }
+  if(contadorSERVO == 2){
+    ledcWrite(pwmS, 307);
+    //Para la primera posición se busca la posición a 1.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
+  }
+  if(contadorSERVO == 3){
+    ledcWrite(pwmS, 410);
+    //Para la primera posición se busca la posición a 2 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
+  }
+  if(contadorSERVO == 4){
+    ledcWrite(pwmS, 512);
+    //Para la primera posición se busca la posición a 2.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
+  }
   if(contadorLED > 2){ //Crear un ciclo entre los valores que puede alcanzar el contador.
     contadorLED = 0;
   }
@@ -164,6 +226,12 @@ void loop() {
   }
   if(contadorBRILLOR > 3){ //Crear un ciclo entre los valores que puede alcanzar el contador.
     contadorBRILLOR = 0;
+  }
+  if(contadorSERVO > 4){
+    contadorSERVO = 4;
+  }
+  if(contadorSERVO < 0){
+    contadorSERVO = 0;
   }
 }
 //******************************************/
@@ -195,6 +263,11 @@ void initPWMR(void){
   ledcAttachPin(LEDR, pwmR);
   ledcWrite(pwmR, 0);
 }
+void initPWMS(void){
+  ledcSetup(pwmS, freqPWM, resPWM);
+  ledcAttachPin(servo, pwmS);
+  ledcWrite(pwmS, 0);
+}
 void initBTN1(void){
   //Funciones para denominar a los botones con su tipo de entrada y su interruptor.
   pinMode(BTN1, INPUT_PULLUP);
@@ -203,4 +276,12 @@ void initBTN1(void){
 void initBTN2(void){
   pinMode(BTN2, INPUT_PULLDOWN);
   attachInterrupt(BTN2, &BTN2_ISR, RISING);
+}
+void initBTN3(void){
+  pinMode(BTN3, INPUT_PULLDOWN);
+  attachInterrupt(BTN3, &BTN3_ISR, RISING);
+}
+void initBTN4(void){
+  pinMode(BTN4, INPUT_PULLDOWN);
+  attachInterrupt(BTN4, &BTN4_ISR, RISING);
 }
